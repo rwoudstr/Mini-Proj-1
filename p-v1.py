@@ -51,10 +51,13 @@ def login():
     print(c.GREEN+"NEW users "+c.W+"- Press R")
     print(c.GREEN+"To exit "+c.W+"- Press E")
     uid = input(c.GREEN+"RETURNING users "+
-                c.W+"Log in with user ID: ")
+                c.W+"Log in with user ID: \n")
+    #Check if the user wants to register new account
     if uid in ["R","r"]:
         register()
         #return None, None
+    if uid in ["E","e"]:
+        quit()
     
     # check that uid/aid exists in db
     cursor.execute("SELECT * FROM users WHERE uid = ? COLLATE NOCASE;", (uid,))  # case-insensitive
@@ -113,7 +116,7 @@ def failed_login():
     # prompt user to choose login or register
     x = 0
     while x not in ["T", "t", "R", "r"]:
-        x = input("Try again (T) or register as new user (R)? ")
+        x = input("Return to login screen (T) or register as new user (R)? ")
     if x in ["R","r"]:
         register()    
     else:
