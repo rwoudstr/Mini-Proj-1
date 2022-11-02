@@ -130,7 +130,7 @@ def register():
         - proceed to user operations menu '''
     
     # check that uid is not already in use
-    check_id = "SELECT uid FROM users WHERE uid = ?;"  # case-insensitive
+    check_id = "SELECT uid FROM users WHERE uid = ? COLLATE NOCASE;"  # case-insensitive
     in_use = 1
     while in_use != None:
         # prompt for uid
@@ -387,8 +387,29 @@ def song_info(sid, uid, id_type):
     print(f"{c.I_GREEN+'DURATION: '+c.W: >24}", end='')
     print(info[2])  # display title
     # get all artists
-    
-    # get playlists
+    get_artists = "SELECT aid FROM perform WHERE sid = ?"
+    cursor.execute(get_artists, (sid,))
+    artists = cursor.fetchall()
+    print(f"{c.I_GREEN+'ARTISTS: '+c.W: >24}", end='')
+    for i in artists:
+        print(i+'  ', end = '')
+    # find playlists that include song
+    get_p = "SELECT pid FROM plinclude WHERE sid = ?;"
+    cursor.execute(get_p, (sid,))
+    pid = cursor.fetchall()
+    p_titles = []
+    if pid == None:  # no playlists include song
+        p_titles.append("This song is in 0 playlists")
+    else:  # get playlist titles
+        get_p_title = "SELECT title FROM playlists WHERE pid = ?;"
+        for i in pid:
+            cursor.execute(get_p_title, (i,))
+            j = cursor.fetchone()
+            p_titles.append(j)
+    # display playlists
+    print(f"{c.I_GREEN+'PLAYLISTS: '+c.W: >24}", end='')
+    for p in p_titles:
+        print(p+'  ', end='')
     
     connection.commit()
     u_options(uid, id_type)
