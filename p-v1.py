@@ -13,6 +13,7 @@ class c:
     
     TITLE = '\x1b[6;30;42m'
     GREEN = '\x1b[1;32;40m'
+    I_GREEN = '\x1b[3;32;40m'  # italic green
     USER = '\x1b[1;34;40m'
     ARTIST = '\x1b[1;33;40m'
     ERROR = '\x1b[1;31;40m'
@@ -138,10 +139,9 @@ def register():
     connection.commit()
     clean_up()  # clear the screen
     print("User Successfully Registered!\nUID: "+new_id+"\nNAME: "+name)
-    
+  
     # go to user operations menu
     user(new_id)
-    
     return
 
 ####################################################################
@@ -270,26 +270,10 @@ def u_options(uid):
         user(uid)
     else:
         logout()  
-    
-def start_sess(uid):
-    ''' START A NEW SESSION
-        - checks that there is not already a session in progress
-        - assign sno
-        - set start date to current date/time, end to null '''
-    
+
+def create_sess(uid):
+    ''' CREATE A SESSION '''
     global connection, cursor
-    # check that there is not a session in progress
-    check_sess = '''SELECT * FROM sessions WHERE uid = ? AND
-                    end IS NULL;'''
-    sessions = cursor.execute(check_sess, (uid,))
-    exists = cursor.fetchone()
-    if exists!= None:
-        print(c.ERROR+"Uh Oh! "+c.W+
-              "You already have a session in progress\n"+ 
-              "Returning to "+c.USER+"USER MENU..."+c.W)
-        time.sleep(3)  # wait for 3 seconds
-        user(uid)
-        return
     # get session numbers already used by user
     snos = "SELECT sno FROM sessions WHERE uid LIKE ?;" # case insensitive
     cursor.execute(snos, (uid,))
@@ -302,11 +286,71 @@ def start_sess(uid):
     new_sess = "INSERT INTO sessions VALUES (?, ?, datetime(), NULL);"
     # add session to database
     cursor.execute(new_sess, (uid,new_sno))
-    connection.commit()
-    # confirmation message
-    print("Successfully added session "+str(new_sno))
-    u_options(uid)
+    connection.commit()  
+    return new_sno
+    
+def start_sess(uid):
+    ''' START SESSION FOR A USER
+        - checks that there is not already a session in progress
+        - set start date to current date/time, end to null '''
+    
+    global connection, cursor
+    # check that there is not a session in progress
+    check_sess = '''SELECT * FROM sessions WHERE uid LIKE ? AND
+                    end IS NULL;'''
+    sessions = cursor.execute(check_sess, (uid,))
+    exists = cursor.fetchone()
+    if exists!= None:  # session exists
+        print(c.ERROR+"Uh Oh! "+c.W+
+              "You already have a session in progress\n"+ 
+              "Returning to "+c.USER+"USER MENU..."+c.W)
+        time.sleep(3)  # wait for 3 seconds
+        user(uid)
+    else:  # create session
+        new_sno = create_sess(uid)
+        # confirmation message
+        print("Successfully added session ", new_sno)
+        u_options(uid)
     return
+
+def listen_song(sid, uid):
+    ''' ADD SONG TO CURRENT SESSION
+        - checks for current session
+        - if no session: creates a session
+        - adds song to session or increments count (listen table)'''
+    
+    global connection, cursor
+    # check if there is an ongoing session
+    check_sess = '''SELECT sno FROM sessions
+                    WHERE uid LIKE ? 
+                    AND end IS NULL;'''
+    sessions = cursor.execute(check_sess, (uid,))
+    sess_exists = cursor.fetchone()
+    if sess_exists != None:  # current session exists
+        sno = sess_exists[0]
+        # check if song is listened to in this session
+        check_lis = '''SELECT cnt FROM listen 
+                       WHERE uid LIKE ?
+                       AND sno = ? AND sid = ?; '''
+        cursor.execute(check_lis, (uid, sno, sid))
+        lis_exists = cursor.fetchone()
+        if lis_exists != None:  # song is already in session
+            # increment listen count
+            cnt = lis_exists[0]+1
+            # update listen table
+            incr = '''UPDATE listen SET cnt = ?
+                      WHERE uid LIKE ?
+                      AND sno = ? AND sid = ?;'''
+            cursor.execute(incr, (cnt, uid, sno, sid))
+        else:  # song is not in session, add new row
+            add_lis = "INSERT INTO listen VALUES (?, ?, ?, 1);"
+            cursor.execute(add_lis, (uid, sno, sid))            
+    else:  # current session does not exist
+        sno = create_sess(uid)  # create a new session
+        # add new row to listen table
+        cursor.execute(add_lis, (uid, sno, sid))    
+    connection.commit()
+    return 
 
 def search_songs():
     pass
@@ -341,7 +385,30 @@ def end_sess(uid):
     # confirmation message
     print("Successfully ended session")
     u_options(uid)
-    return    
+    return   
+
+def song_info(sid):
+    ''' DISPLAY INFO ABOUT SONG
+        - name(s) of artist(s)
+        - title
+        - duration
+        - playlists song is in 
+        *** available to both users and artists ***'''
+    
+    global connection, cursor
+    # get title and duration
+    cursor.execute("SELECT * FROM songs WHERE sid LIKE ?;", (sid,))
+    info = cursor.fetchone()
+    print(f"{c.I_GREEN+'TITLE: '+c.W: >24}", end='')
+    print(info[1])  # display title
+    print(f"{c.I_GREEN+'DURATION: '+c.W: >24}", end='')
+    print(info[2])  # display title
+    # get all artists
+    
+    # get playlists
+    
+    connection.commit()
+    return     
 
 ####################################################################
 ## END PROGRAM -----------------------------------------------------
