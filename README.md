@@ -4,12 +4,12 @@
 > due Thurs Nov 3, 5pm
 
 ---LOGIN---
-+ Users and artists can login
-+ Both user and artist? Ask for clarification
-+ Artist? Go to artist menu
-+ User? Go to user menu
-+ Register with unique uid, name, password (not encrypted)
-    + Go to user menu
++ ~~Users and artists can login~~
++ ~~Both user and artist? Ask for clarification~~
++ ~~Artist? Go to artist menu~~
++ ~~User? Go to user menu~~
++ ~~Register with unique uid, name, password (not encrypted)~~
+    + ~~Go to user menu~~
 - Logout → first login screen
 - Directly exit program
     - Automatically close session
