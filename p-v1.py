@@ -14,10 +14,11 @@ class c:
     TITLE = '\x1b[6;30;42m'
     GREEN = '\x1b[1;32;40m'
     I_GREEN = '\x1b[3;32;40m'  # italic green
-    USER = '\x1b[1;34;40m'
-    ARTIST = '\x1b[1;33;40m'
-    ERROR = '\x1b[1;31;40m'
-    W = '\x1b[0m'
+    USER = '\x1b[1;34;40m'  # blue
+    ARTIST = '\x1b[1;33;40m'  # yellow
+    ERROR = '\x1b[1;31;40m'  # red
+    W = '\x1b[0m'  # default text
+    I_W = '\x1b[3;37;40m'  # italic white
 
 def clean_up():
     ''' clear text from command line '''
@@ -39,17 +40,20 @@ def login():
     
     global connection, cursor
     id_type = None  # indicates if logging in as user or artist
+    uid = None
     clean_up()  # clear the screen
     
     # welcome message
     print(c.TITLE+"WELCOME"+c.W)    
     # prompt user for uid/aid
-    print(c.GREEN+"NEW users "+c.W+"- Press R")
+    print(c.GREEN+"NEW users "+c.W+"- Press R to register")
     uid = input(c.GREEN+"RETURNING users "+
                 c.W+"Log in with user ID: ")
+    # register new user
     if uid in ["R","r"]:
-        register()
-        #return None, None
+        new_uid = register()
+        id_type = "U"
+        return new_uid, id_type
     
     # check that uid/aid exists in db
     cursor.execute("SELECT * FROM users WHERE uid LIKE ?;", (uid,))  # case-insensitive
@@ -76,9 +80,9 @@ def login():
         id_type = "A"
     else:
         # uid/aid doesn't exist
-        print("User ID does not exist - ", end='')
-        failed_login()
-        #return None, None
+        print(c.ERROR+"Uh Oh! "+c.W+"User ID does not exist - ", end='')
+        #failed_login()
+        return None, None
     
     # if id exists, prompt user for pwd
     pwd = input("Password: ")
@@ -93,9 +97,11 @@ def login():
     exists = cursor.fetchone()
     # check for match
     if exists == None:
-        print("Incorrect Password - ", end='')
-        failed_login()
+        print(c.ERROR+"Uh Oh! "+c.W+"Incorrect Password - ", end='')
+        #failed_login()
         #return None, None
+        uid = None
+        id_type = None
     
     # else, return uid/aid and artist/user flag
     return uid, id_type
@@ -111,8 +117,8 @@ def failed_login():
         x = input("Try again (T) or register as new user (R)? ")
     if x in ["R","r"]:
         register()    
-    else:
-        login()
+    #else:
+        #login()
 
 def register():
     global connection, cursor
@@ -126,7 +132,7 @@ def register():
     in_use = 1
     while in_use != None:
         # prompt for uid
-        new_id = input("Create a user ID: ")[0:3]  # uid is 4 characters max
+        new_id = input("Create a user ID: ")[0:4]  # uid is 4 characters max
         cursor.execute(check_id, (new_id,))
         in_use = cursor.fetchone()
     # prompt for name
@@ -137,12 +143,12 @@ def register():
     add = "INSERT INTO users VALUES (?, ?, ?);"
     cursor.execute(add, (new_id, name, pwd))
     connection.commit()
-    clean_up()  # clear the screen
-    print("User Successfully Registered!\nUID: "+new_id+"\nNAME: "+name)
-  
-    # go to user operations menu
-    user(new_id)
-    return
+    print(c.USER+"USER successfully registered!"+c.W
+          +c.I_GREEN+"\nUID: "+c.W+new_id
+          +c.I_GREEN+"\nNAME: "+c.W+name)
+    x = input("Press [ENTER] to continue")
+    if x or not x:    
+        return new_id
 
 ####################################################################
 ## ARTIST ----------------------------------------------------------
@@ -170,7 +176,7 @@ def a_options(aid):
     if action in ["M", "m"]:
         artist(aid)
     else:
-        logout() 
+        logout(aid, None) 
 
 def add_song(aid):
     ''' ARTIST ADDS A SONG
@@ -238,7 +244,7 @@ def top_songs():
 
 ####################################################################
 ## USER ------------------------------------------------------------  
-def user(uid):
+def user(uid, id_type):
     ''' USER OPERATIONS MENU '''
     
     global connection, cursor
@@ -251,45 +257,27 @@ def user(uid):
     while get_input not in ['1', '2', '3', '4']:
         get_input = input("Please choose a valid option (1, 2, 3, 4)")
     if get_input == '1':
-        start_sess(uid)
+        start_sess(uid, id_type)
     elif get_input == '2':
-        search_songs()
+        search_songs(uid, id_type)
     elif get_input == '3':
-        search_artists()
+        search_artists(uid, id_type)
     else:
-        end_sess(uid)    
+        end_sess(uid, id_type)    
     return
 
-def u_options(uid):
+def u_options(uid, id_type):
     '''allow user to logout or return to user menu'''
     action = "a"
     while action not in ["M", "m", "L", "l"]:
         action = input("Return to "+c.USER+"USER MENU (M)"+
                        c.W+" or "+c.GREEN+"LOGOUT (L) "+ c.W)
     if action in ["M", "m"]:
-        user(uid)
+        user(uid, id_type)
     else:
-        logout()  
-
-def create_sess(uid):
-    ''' CREATE A SESSION '''
-    global connection, cursor
-    # get session numbers already used by user
-    snos = "SELECT sno FROM sessions WHERE uid LIKE ?;" # case insensitive
-    cursor.execute(snos, (uid,))
-    get_sno = cursor.fetchall()
-    all_sno = [0]  # list of session numbers currently in use
-    for i in get_sno:
-        all_sno.append(i[0])
-    new_sno = max(all_sno)+1  # new unique session number
-    # set session start date to current date, end to null
-    new_sess = "INSERT INTO sessions VALUES (?, ?, datetime(), NULL);"
-    # add session to database
-    cursor.execute(new_sess, (uid,new_sno))
-    connection.commit()  
-    return new_sno
+        logout(uid, id_type)  
     
-def start_sess(uid):
+def start_sess(uid, id_type):
     ''' START SESSION FOR A USER
         - checks that there is not already a session in progress
         - set start date to current date/time, end to null '''
@@ -305,15 +293,15 @@ def start_sess(uid):
               "You already have a session in progress\n"+ 
               "Returning to "+c.USER+"USER MENU..."+c.W)
         time.sleep(3)  # wait for 3 seconds
-        user(uid)
+        user(uid, id_type)
     else:  # create session
         new_sno = create_sess(uid)
         # confirmation message
         print("Successfully added session ", new_sno)
-        u_options(uid)
+        u_options(uid, id_type)
     return
 
-def listen_song(sid, uid):
+def listen_song(sid, uid, id_type):
     ''' ADD SONG TO CURRENT SESSION
         - checks for current session
         - if no session: creates a session
@@ -350,6 +338,8 @@ def listen_song(sid, uid):
         # add new row to listen table
         cursor.execute(add_lis, (uid, sno, sid))    
     connection.commit()
+    print("Song added to 'listen'")
+    u_options(uid, id_type)
     return 
 
 def search_songs():
@@ -357,37 +347,28 @@ def search_songs():
 def search_artists():
     pass
 
-def end_sess(uid):
+def end_sess(uid, id_type):
     ''' END CURRENT SESSION 
         - checks that there is an active session
         - sets end to current date/time '''
-    
-    global connection, cursor
+  
     # check that there is not a session in progress
-    check_sess = '''SELECT * FROM sessions 
-                    WHERE uid LIKE ? 
-                    AND end IS NULL;'''
-    sessions = cursor.execute(check_sess, (uid,))
-    exists = cursor.fetchone()    
-    if exists == None:
+    exists = check_sess(uid)    
+    if exists==False:
         print(c.ERROR+"Uh Oh! "+c.W+
               "You have 0 sessions in progress\n"+ 
               "Returning to "+c.USER+"USER MENU..."+c.W)
         time.sleep(3)  # wait for 3 seconds
-        user(uid)
+        user(uid, id_type)
         return
     # set end to current date/time
-    update = '''UPDATE sessions SET end = datetime() 
-                WHERE uid LIKE ? 
-                AND end IS NULL;'''
-    cursor.execute(update, (uid,))
-    connection.commit()
+    update_sess(uid)
     # confirmation message
     print("Successfully ended session")
-    u_options(uid)
+    u_options(uid, id_type)
     return   
 
-def song_info(sid):
+def song_info(sid, uid, id_type):
     ''' DISPLAY INFO ABOUT SONG
         - name(s) of artist(s)
         - title
@@ -408,21 +389,110 @@ def song_info(sid):
     # get playlists
     
     connection.commit()
+    u_options(uid, id_type)
     return     
+
+## SESSION FUNCTIONS ##
+def create_sess(uid):
+    ''' CREATE A SESSION '''
+    global connection, cursor
+    # get session numbers already used by user
+    snos = "SELECT sno FROM sessions WHERE uid LIKE ?;" # case insensitive
+    cursor.execute(snos, (uid,))
+    get_sno = cursor.fetchall()
+    all_sno = [0]  # list of session numbers currently in use
+    for i in get_sno:
+        all_sno.append(i[0])
+    new_sno = max(all_sno)+1  # new unique session number
+    # set session start date to current date, end to null
+    new_sess = "INSERT INTO sessions VALUES (?, ?, datetime(), NULL);"
+    # add session to database
+    cursor.execute(new_sess, (uid,new_sno))
+    connection.commit()  
+    return new_sno
+
+def check_sess(uid):
+    ''' checks if user has a session 
+        - returns True if session in progress
+        - returns False if no session in progress'''
+    global connection, cursor
+    # check that there is not a session in progress
+    check_sess = '''SELECT * FROM sessions 
+                    WHERE uid LIKE ? 
+                    AND end IS NULL;'''
+    sessions = cursor.execute(check_sess, (uid,))
+    exists = cursor.fetchone()
+    connection.commit()
+    return (exists != None)
+
+def update_sess(uid):
+    ''' sets end time of current sessions to current date/time '''
+    global connection, cursor
+    update = '''UPDATE sessions SET end = datetime() 
+                WHERE uid LIKE ? 
+                AND end IS NULL;'''
+    cursor.execute(update, (uid,))
+    connection.commit()    
+    return 
 
 ####################################################################
 ## END PROGRAM -----------------------------------------------------
-def logout():
-    ''' LOGOUT '''
-    pass
+def logout(uid, id_type):
+    ''' LOGOUT 
+        - close any active sessions
+        - return to login screen '''
 
-def exit_program():
+    clean_up()  # clear the screen
+    # if user, close any active sessions
+    if id_type == "U":
+        exists = check_sess(uid)    
+        if exists==True:  
+            update_sess(uid) 
+            print(c.I_W+"closing sessions...")
+    # print log out message
+    print("logging out..."+c.W)
+    time.sleep(2)
+    # return to main menu
+    program()
+    return
+
+def exit_program(uid, id_type):
     ''' EXIT PROGRAM '''
+    # if user, close any active sessions
+    if id_type == "U":
+        exists = check_sess(uid)    
+        if exists==True:  
+            update_sess(uid)     
     print('bye bye :)')
     pass
 
 ####################################################################
 ## MAIN ------------------------------------------------------------    
+def connect():
+    ''' CONNECT TO DATABASE '''
+    
+    global connection, cursor
+    clean_up()  # clear screen
+    # get database name from user
+    db = input('Please enter your database name ("file.db"): ' )
+    # connect to database
+    connection = sqlite3.connect('./'+db)
+    cursor = connection.cursor()
+    cursor.execute('PRAGMA foreign_keys=ON;')
+    connection.commit()  
+    
+def program():
+    # login/register, get type of user (artist or user)
+    uid = None
+    while uid == None:
+        uid, id_type = login()
+        if uid == None: 
+            failed_login()
+    if id_type == "A":
+        artist(uid)  # open artist operations menu
+    else:
+        user(uid, id_type)  # open user operations menu    
+
 def main():
     ''' MAIN FUNCTION 
         - connect to database
@@ -430,28 +500,13 @@ def main():
         - close database connection '''   
     
     global connection, cursor
-    
-    # get database name from user
-    db = input('Please enter your database name ("file.db"): ' )
-    # connect to database
-    connection = sqlite3.connect('./'+db)
-    cursor = connection.cursor()
-    cursor.execute('PRAGMA foreign_keys=ON;')
-    connection.commit()    
-    
-    # login/register, get type of user (artist or user)
-    uid, id_type = login()
-    if uid == None:
-        return
-    if id_type == "A":
-        artist(uid)  # open artist operations menu
-    else:
-        user(uid)  # open user operations menu
-        
+    # connect to database   
+    connect()
+    # run program 
+    program()  
     # close database connection
     connection.commit()
     connection.close()
     return 
 
-#### RUN THE PROGRAM ####
 main()
