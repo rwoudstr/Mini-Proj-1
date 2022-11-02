@@ -15,10 +15,10 @@
     - Automatically close session
 
 ---USER FUNCTIONALITIES---
-+ Start a session
-    - Program assigns session number unique to user
-    - Session start date = current date/time
-    - Session end = null
++ ~~Start a session~~
+    - ~~Program assigns session number unique to user~~
+    - ~~Session start date = current date/time~~
+    - ~~Session end = null~~
 + Search for songs, playlists using >= 1 keyword(s)
     - Retrieve all songs, playlists with keywords in title
         - SONG: return id, title, duration 
