@@ -51,7 +51,7 @@
      - If new playlist: system creates unique playlist id, get uid and title from input
 
 ---ARTIST ACTIONS---
-+ ~~Add song ~~
++ ~~Add song~~
      + ~~System creates unique id (if same title & duration doesn't already exist)~~
      - ~~Get additional artist ids from input~~
      - ~~update perform table~~
