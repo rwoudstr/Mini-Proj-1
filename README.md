@@ -45,8 +45,8 @@
 + ~~Listen to song~~ *need to test*
     - ~~Add listen to current session (increment listen count or add new row)~~
     - ~~OR start a new session~~
-- See more info about song
-     - Name(s) of performing artist(s), id, title, duration, playlists song is in
+- ~~See more info about song~~ *need to test*
+     - ~~Name(s) of performing artist(s), id, title, duration, playlists song is in~~
 - Add song to existing or new playlist
      - If new playlist: system creates unique playlist id, get uid and title from input
 
