@@ -10,9 +10,7 @@
 + ~~User? Go to user menu~~
 + ~~Register with unique uid, name, password (not encrypted)~~
     + ~~Go to user menu~~
-- Logout → first login screen
-- Directly exit program
-    - Automatically close session
++ Directly exit program
 
 ---USER FUNCTIONALITIES---
 + ~~Start a session~~
@@ -40,6 +38,9 @@
         - Can select a song
 + ~~End the session~~
     - ~~Set session end to current date/time~~
++ Logout → first login screen
+    -Automatically close session
+    -Return to login screen
 
 ---SONG ACTIONS---
 + Listen to song
