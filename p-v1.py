@@ -1,9 +1,23 @@
 import time
 from os import system, name
 import sqlite3
+import getpass
+
 connection = None
 cursor = None
 
+
+def sterilize_input(string):
+    ''' Input: string (an input from the user)
+        Return Value: a sterlized version of the user's string
+    
+        This function (hopefully) prevents the user from injecting 
+        sql statements as inputs.
+    '''
+    pass
+    
+    
+    
 ####################################################################
 ## TEXT COLOURS ----------------------------------------------------
 class c:
@@ -80,8 +94,8 @@ def login():
         failed_login()
         #return None, None
     
-    # if id exists, prompt user for pwd
-    pwd = input("Password: ")
+    # if id exists, prompt user for pwd (password input is masked)
+    pwd = getpass.getpass()
     if id_type == "A":
         table = 'artists'
         field = 'aid'
@@ -122,17 +136,17 @@ def register():
         - proceed to user operations menu '''
     
     # check that uid is not already in use
-    check_id = "SELECT uid FROM users WHERE uid LIKE ?;"  # case-insensitive
+    check_id = "SELECT uid FROM users WHERE uid = ?;"  # case-insensitive
     in_use = 1
     while in_use != None:
         # prompt for uid
-        new_id = input("Create a user ID: ")[0:3]  # uid is 4 characters max
-        cursor.execute(check_id, (new_id,))
+        new_id = input("Create a unique user ID (max 4 characters): ")  
+        cursor.execute(check_id, (new_id[0:4],)) # uid is 4 characters max
         in_use = cursor.fetchone()
     # prompt for name
     name = input("Enter your name: ")
     # prompt for password
-    pwd = input("Create a password: ")
+    pwd = getpass.getpass("Enter your password: ")
     # add info to database
     add = "INSERT INTO users VALUES (?, ?, ?);"
     cursor.execute(add, (new_id, name, pwd))
@@ -454,4 +468,5 @@ def main():
     return 
 
 #### RUN THE PROGRAM ####
-main()
+if __name__ == "__main__":
+    main()
