@@ -56,7 +56,7 @@ def login():
         new_uid = register()
         id_type = "U"
         return new_uid, id_type
-    if uid in ["e", "e"]:
+    if uid in ["E", "e"]:
         quit()
     
     # check that uid/aid exists in db
@@ -116,10 +116,13 @@ def failed_login():
     
     print("Login Failed")
     # prompt user to choose login or register
+    print("Press (E) to "+c.GREEN+"EXIT"+c.W)
     x = 0
-    while x not in ["L", "l", "R", "r"]:
+    while x not in ["L", "l", "R", "r", "E", "e"]:
         x = input("Return to login screen (L) or register as new user (R)? ")
-    if x in ["R","r"]:
+    if x in ["E", "e"]:
+        quit()    
+    elif x in ["R","r"]:
         register()    
 
 def register():
@@ -158,12 +161,18 @@ def artist(aid):
     ''' ARTIST OPERATIONS MENU '''
     
     clean_up()  # clear the screen
+    print(c.I_W+"Press (E) to "+c.GREEN+"EXIT"+c.W)
+    print(c.I_W+"Press (L) to "+c.GREEN+"LOGOUT"+c.W)
     print(c.ARTIST+'---ARTIST MENU---'+c.W)
     print('[1]  Add a song\n[2]  Find top fans & playlists')
     get_input = input('> ')
-    while get_input not in ['1', '2']:
+    while get_input not in ['1', '2', "E", "e", "L", "l"]:
         get_input = input("Please choose a valid option (1 or 2)")
-    if get_input == '1':
+    if get_input in ["E", "e"]:
+        exit_program(aid, None)
+    elif get_input in ["L", "l"]:
+        logout(aid, None)    
+    elif get_input == '1':
         add_song(aid)
     else:
         top_songs()
@@ -171,11 +180,14 @@ def artist(aid):
 
 def a_options(aid):
     '''allow artist to logout or return to artist menu'''
+    print(c.I_W+"Press (E) to "+c.GREEN+"EXIT"+c.W)
+    print(c.I_W+"Press (L) to "+c.GREEN+"LOGOUT"+c.W)
     action = "a"
-    while action not in ["M", "m", "L", "l"]:
-        action = input("Return to "+c.ARTIST+"ARTIST MENU (M)"+
-                       c.W+" or "+c.GREEN+"LOGOUT (L) "+ c.W)
-    if action in ["M", "m"]:
+    while action not in ["M", "m", "L", "l", "E", "e"]:
+        action = input("Return to "+c.ARTIST+"ARTIST MENU (M)"+c.W)
+    if action in ["E", "e"]:
+        exit_program(aid, None)
+    elif action in ["M", "m"]:
         artist(aid)
     else:
         logout(aid, None) 
@@ -246,40 +258,49 @@ def top_songs():
 
 ####################################################################
 ## USER ------------------------------------------------------------  
-def user(uid, id_type):
+def user(uid):
     ''' USER OPERATIONS MENU '''
     
     global connection, cursor
     clean_up()  # clear the screen
+    print(c.I_W+"Press (E) to "+c.GREEN+"EXIT"+c.W)
+    print(c.I_W+"Press (L) to "+c.GREEN+"LOGOUT"+c.W)    
     print(c.USER+'---USER MENU---'+c.W)
     print('[1]  Start a session\n[2]  Search for songs & playlists')
     print('[3]  Search for artists\n[4]  End current session')
     get_input = input('> ')
     
-    while get_input not in ['1', '2', '3', '4']:
+    while get_input not in ['1', '2', '3', '4', "E", "e", "L", "l"]:
         get_input = input("Please choose a valid option (1, 2, 3, 4)")
-    if get_input == '1':
-        start_sess(uid, id_type)
+    if get_input in ["E", "e"]:
+        exit_program(uid, "U")
+    elif get_input in ["L", "l"]:
+        logout(uid, "U")
+    elif get_input == '1':
+        start_sess(uid)
     elif get_input == '2':
-        search_songs(uid, id_type)
+        search_songs(uid)
     elif get_input == '3':
-        search_artists(uid, id_type)
+        search_artists(uid)
     else:
-        end_sess(uid, id_type)    
+        end_sess(uid)    
     return
 
-def u_options(uid, id_type):
+def u_options(uid):
     '''allow user to logout or return to user menu'''
+    print(c.I_W+"Press (E) to "+c.GREEN+"EXIT"+c.W)  
+    print(c.I_W+"Press (L) to "+c.GREEN+"LOGOUT"+c.W)
     action = "a"
-    while action not in ["M", "m", "L", "l"]:
-        action = input("Return to "+c.USER+"USER MENU (M)"+
-                       c.W+" or "+c.GREEN+"LOGOUT (L) "+ c.W)
-    if action in ["M", "m"]:
-        user(uid, id_type)
+    while action not in ["M", "m", "L", "l", "E", "e"]:
+        action = input("Return to "+c.USER+"USER MENU (M)"+c.W)
+    if action in ["E", "e"]:
+        exit_program(uid, "U")
+    elif action in ["M", "m"]:
+        user(uid)
     else:
-        logout(uid, id_type)  
+        logout(uid, "U")  
     
-def start_sess(uid, id_type):
+def start_sess(uid):
     ''' START SESSION FOR A USER
         - checks that there is not already a session in progress
         - set start date to current date/time, end to null '''
@@ -295,12 +316,12 @@ def start_sess(uid, id_type):
               "You already have a session in progress\n"+ 
               "Returning to "+c.USER+"USER MENU..."+c.W)
         time.sleep(3)  # wait for 3 seconds
-        user(uid, id_type)
+        user(uid)
     else:  # create session
         new_sno = create_sess(uid)
         # confirmation message
         print("Successfully added session ", new_sno)
-        u_options(uid, id_type)
+        u_options(uid)
     return
 
 def listen_song(sid, uid, id_type):
@@ -341,7 +362,7 @@ def listen_song(sid, uid, id_type):
         cursor.execute(add_lis, (uid, sno, sid))    
     connection.commit()
     print("Song added to 'listen'")
-    u_options(uid, id_type)
+    u_options(uid)
     return 
 
 def search_songs():
@@ -349,7 +370,7 @@ def search_songs():
 def search_artists():
     pass
 
-def end_sess(uid, id_type):
+def end_sess(uid):
     ''' END CURRENT SESSION 
         - checks that there is an active session
         - sets end to current date/time '''
@@ -361,13 +382,13 @@ def end_sess(uid, id_type):
               "You have 0 sessions in progress\n"+ 
               "Returning to "+c.USER+"USER MENU..."+c.W)
         time.sleep(3)  # wait for 3 seconds
-        user(uid, id_type)
+        user(uid)
         return
     # set end to current date/time
     update_sess(uid)
     # confirmation message
     print("Successfully ended session")
-    u_options(uid, id_type)
+    u_options(uid)
     return   
 
 def song_info(sid, uid, id_type):
@@ -380,7 +401,7 @@ def song_info(sid, uid, id_type):
     
     global connection, cursor
     # get title and duration
-    cursor.execute("SELECT * FROM songs WHERE sid LIKE ?;", (sid,))
+    cursor.execute("SELECT * FROM songs WHERE sid = ?;", (sid,))
     info = cursor.fetchone()
     print(f"{c.I_GREEN+'TITLE: '+c.W: >24}", end='')
     print(info[1])  # display title
@@ -420,7 +441,7 @@ def create_sess(uid):
     ''' CREATE A SESSION '''
     global connection, cursor
     # get session numbers already used by user
-    snos = "SELECT sno FROM sessions WHERE uid LIKE ?;" # case insensitive
+    snos = "SELECT sno FROM sessions WHERE uid = ? COLLATE NOCASE;" # case insensitive
     cursor.execute(snos, (uid,))
     get_sno = cursor.fetchall()
     all_sno = [0]  # list of session numbers currently in use
@@ -473,8 +494,8 @@ def logout(uid, id_type):
             update_sess(uid) 
             print(c.I_W+"closing sessions...")
     # print log out message
-    print("logging out..."+c.W)
-    time.sleep(2)
+    print(c.I_W+"logging out..."+c.W)
+    time.sleep(1.5)
     # return to main menu
     program()
     return
@@ -487,7 +508,6 @@ def exit_program(uid, id_type):
         if exists==True:  
             update_sess(uid)     
     print('bye bye :)')
-    time.sleep(3)
     quit()
     pass
 
@@ -516,7 +536,7 @@ def program():
     if id_type == "A":
         artist(uid)  # open artist operations menu
     else:
-        user(uid, id_type)  # open user operations menu    
+        user(uid)  # open user operations menu    
 
 def main():
     ''' MAIN FUNCTION 
@@ -534,6 +554,5 @@ def main():
     connection.close()
     return 
 
-main()
 if __name__ == "__main__":
     main()
