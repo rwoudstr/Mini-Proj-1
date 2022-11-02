@@ -10,7 +10,7 @@
 + ~~User? Go to user menu~~
 + ~~Register with unique uid, name, password (not encrypted)~~
     + ~~Go to user menu~~
-+ Directly exit program
++ ~~Directly exit program~~
 
 ---USER FUNCTIONALITIES---
 + ~~Start a session~~
