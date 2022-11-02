@@ -11,8 +11,8 @@
 + ~~Register with unique uid, name, password (not encrypted)~~
     + ~~Go to user menu~~
 - ~~Logout → first login screen~~
-- Directly exit program
-    - Automatically close session
+- ~~Directly exit program~~
+    - ~~Automatically close session~~
 
 ---USER FUNCTIONALITIES---
 + ~~Start a session~~
