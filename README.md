@@ -10,7 +10,7 @@
 + ~~User? Go to user menu~~
 + ~~Register with unique uid, name, password (not encrypted)~~
     + ~~Go to user menu~~
-- Logout → first login screen
+- ~~Logout → first login screen~~
 - Directly exit program
     - Automatically close session
 
@@ -42,9 +42,9 @@
     - ~~Set session end to current date/time~~
 
 ---SONG ACTIONS---
-+ Listen to song
-    - Add listen to current session (increment listen count or add new row)
-    - OR start a new session
++ ~~Listen to song~~ *need to test*
+    - ~~Add listen to current session (increment listen count or add new row)~~
+    - ~~OR start a new session~~
 - See more info about song
      - Name(s) of performing artist(s), id, title, duration, playlists song is in
 - Add song to existing or new playlist
