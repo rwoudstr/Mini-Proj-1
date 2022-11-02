@@ -49,6 +49,7 @@ def login():
     print(c.TITLE+"WELCOME"+c.W)    
     # prompt user for uid/aid
     print(c.GREEN+"NEW users "+c.W+"- Press R")
+    print(c.GREEN+"To exit "+c.W+"- Press E")
     uid = input(c.GREEN+"RETURNING users "+
                 c.W+"Log in with user ID: ")
     if uid in ["R","r"]:
@@ -56,9 +57,9 @@ def login():
         #return None, None
     
     # check that uid/aid exists in db
-    cursor.execute("SELECT * FROM users WHERE uid LIKE ?;", (uid,))  # case-insensitive
+    cursor.execute("SELECT * FROM users WHERE uid = ? COLLATE NOCASE;", (uid,))  # case-insensitive
     user_exists = cursor.fetchone()
-    cursor.execute("SELECT * FROM artists WHERE aid LIKE ?;", (uid,))  # case-insensitive
+    cursor.execute("SELECT * FROM artists WHERE aid = ? COLLATE NOCASE;", (uid,))  # case-insensitive
     artist_exists = cursor.fetchone()
     
     if user_exists != None and artist_exists != None:
@@ -92,7 +93,7 @@ def login():
     else:
         table = 'users'
         field = 'uid'
-    check_pwd = 'SELECT * FROM '+table+' WHERE '+field+' LIKE ? AND pwd = ?;'
+    check_pwd = 'SELECT * FROM '+table+' WHERE '+field+' = ? COLLATE NOCASE AND pwd = ?;'
     cursor.execute(check_pwd, (uid,pwd))  # injection attacks???
     exists = cursor.fetchone()
     # check for match
