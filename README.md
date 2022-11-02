@@ -38,8 +38,8 @@
         - User can see more pages of results (paginated downward)
     - User can select artist to see id, title, duration of ALL artist's songs
         - Can select a song
-+ End the session
-    - Set session end to current date/time
++ ~~End the session~~
+    - ~~Set session end to current date/time~~
 
 ---SONG ACTIONS---
 + Listen to song
@@ -51,9 +51,10 @@
      - If new playlist: system creates unique playlist id, get uid and title from input
 
 ---ARTIST ACTIONS---
-+ Add song 
-     + System creates unique id (if same title & duration doesn't already exist)
-     - Get additional artist ids from input
++ ~~Add song ~~
+     + ~~System creates unique id (if same title & duration doesn't already exist)~~
+     - ~~Get additional artist ids from input~~
+     - ~~update perform table~~
 + Find top fans and playlists
      + Lists top 3 users who listen to songs for the longest time
      - Lists top 3 playlists with largest # of artist's songs
