@@ -10,6 +10,7 @@ class c:
     ''' CHANGE TEXT COLOURS
         - concatenate with text to change colour in the terminal
         - W is default white text '''
+    
     TITLE = '\x1b[6;30;42m'
     GREEN = '\x1b[1;32;40m'
     USER = '\x1b[1;34;40m'
@@ -34,6 +35,7 @@ def login():
         - prompts for login info until successful login
         - option to register new user
         - identifies user vs artist '''
+    
     global connection, cursor
     id_type = None  # indicates if logging in as user or artist
     clean_up()  # clear the screen
@@ -146,7 +148,7 @@ def register():
 ## ARTIST ----------------------------------------------------------
 def artist(aid):
     ''' ARTIST OPERATIONS MENU '''
-    global connection, cursor
+    
     clean_up()  # clear the screen
     print(c.ARTIST+'---ARTIST MENU---'+c.W)
     print('[1]  Add a song\n[2]  Find top fans & playlists')
@@ -154,14 +156,82 @@ def artist(aid):
     while get_input not in ['1', '2']:
         get_input = input("Please choose a valid option (1 or 2)")
     if get_input == '1':
-        add_song()
+        add_song(aid)
     else:
         top_songs()
     return
 
-def add_song():
-    input("")
-    pass
+def a_options(aid):
+    '''allow artist to logout or return to artist menu'''
+    action = "a"
+    while action not in ["M", "m", "L", "l"]:
+        action = input("Return to "+c.ARTIST+"ARTIST MENU (M)"+
+                       c.W+" or "+c.GREEN+"LOGOUT (L) "+ c.W)
+    if action in ["M", "m"]:
+        artist(aid)
+    else:
+        logout() 
+
+def add_song(aid):
+    ''' ARTIST ADDS A SONG
+        - get title and duration from user
+        - get additional artists from user
+        - if song doesn't exist, adds to db with unique song id
+        - updates perform table '''
+    
+    global connection, cursor
+    # get title and duration from artist
+    artists = list(map(str, input("Enter additional artists: ").split()))
+    artists.append(aid)
+    title = input("Enter song title: ")
+    try:
+        dur = int(input("Enter song duration: "))
+    except:
+        print(c.ERROR+"ERROR! "+c.W+"please enter a numerical value")
+        try:
+            dur = int(input("Enter song duration: "))
+        except:
+            print(c.ERROR+"ERROR! "+c.W+"not a valid duration")
+            a_options(aid)
+            return
+    # check if song exists
+    get_song = '''SELECT * FROM songs
+                  WHERE title LIKE ?
+                  AND duration = ?'''
+    cursor.execute(get_song, (title, dur))
+    exists = cursor.fetchone()  
+    if exists!= None:  # song already exists in db
+        print(c.ERROR+"Uh Oh! "+c.W+"This song already exists")
+        a_options(aid)
+        return   
+    # get song ids already in use
+    cursor.execute("SELECT sid FROM songs;")
+    get_sid = cursor.fetchall()
+    all_sid = [0]  # list of song ids currently in use
+    for i in get_sid:
+        all_sid.append(i[0])
+    new_sid = max(all_sid)+1  # new unique song id    
+    # if there are additional artists, check that they exist
+    if len(artists) > 1:
+        cursor.execute("SELECT aid FROM artists;")
+        get_aid = cursor.fetchall()
+        for i in artists:
+            if (i,) not in get_aid:
+                print(c.ERROR+"ERROR! "+c.W+
+                      "one or more artists do not exist")
+                a_options(aid)
+                return
+    # add song to database
+    add_song = "INSERT INTO songs VALUES (?, ?, ?);"
+    cursor.execute(add_song, (new_sid, title, dur))    
+    # add aid and sid to perform table
+    for i in artists:
+        cursor.execute("INSERT INTO perform VALUES (?, ?);", (i, new_sid))
+    connection.commit()
+    # confirmation message
+    print("Song '"+title+"' successfully added")
+    a_options(aid)
+    return
 
 def top_songs():
     pass
@@ -170,6 +240,7 @@ def top_songs():
 ## USER ------------------------------------------------------------  
 def user(uid):
     ''' USER OPERATIONS MENU '''
+    
     global connection, cursor
     clean_up()  # clear the screen
     print(c.USER+'---USER MENU---'+c.W)
@@ -189,11 +260,23 @@ def user(uid):
         end_sess(uid)    
     return
 
+def u_options(uid):
+    '''allow user to logout or return to user menu'''
+    action = "a"
+    while action not in ["M", "m", "L", "l"]:
+        action = input("Return to "+c.USER+"USER MENU (M)"+
+                       c.W+" or "+c.GREEN+"LOGOUT (L) "+ c.W)
+    if action in ["M", "m"]:
+        user(uid)
+    else:
+        logout()  
+    
 def start_sess(uid):
     ''' START A NEW SESSION
         - checks that there is not already a session in progress
         - assign sno
-        - set start date to current date, end to null '''
+        - set start date to current date/time, end to null '''
+    
     global connection, cursor
     # check that there is not a session in progress
     check_sess = '''SELECT * FROM sessions WHERE uid = ? AND
@@ -216,37 +299,59 @@ def start_sess(uid):
         all_sno.append(i[0])
     new_sno = max(all_sno)+1  # new unique session number
     # set session start date to current date, end to null
-    new_sess = "INSERT INTO sessions VALUES (?, ?, CURRENT_DATE, NULL);"
+    new_sess = "INSERT INTO sessions VALUES (?, ?, datetime(), NULL);"
     # add session to database
     cursor.execute(new_sess, (uid,new_sno))
     connection.commit()
     # confirmation message
     print("Successfully added session "+str(new_sno))
-    action = "a"
-    while action not in ["M", "m", "L", "l"]:
-        action = input("Return to "+c.USER+"USER MENU (M)"+
-                       c.W+" or "+c.GREEN+"LOGOUT (L) "+
-                       c.W)
-    if action in ["M", "m"]:
-        user(uid)
-    else:
-        logout()
+    u_options(uid)
     return
 
 def search_songs():
     pass
 def search_artists():
     pass
+
 def end_sess(uid):
-    ''' END CURRENT SESSION '''
-    return
+    ''' END CURRENT SESSION 
+        - checks that there is an active session
+        - sets end to current date/time '''
+    
+    global connection, cursor
+    # check that there is not a session in progress
+    check_sess = '''SELECT * FROM sessions 
+                    WHERE uid LIKE ? 
+                    AND end IS NULL;'''
+    sessions = cursor.execute(check_sess, (uid,))
+    exists = cursor.fetchone()    
+    if exists == None:
+        print(c.ERROR+"Uh Oh! "+c.W+
+              "You have 0 sessions in progress\n"+ 
+              "Returning to "+c.USER+"USER MENU..."+c.W)
+        time.sleep(3)  # wait for 3 seconds
+        user(uid)
+        return
+    # set end to current date/time
+    update = '''UPDATE sessions SET end = datetime() 
+                WHERE uid LIKE ? 
+                AND end IS NULL;'''
+    cursor.execute(update, (uid,))
+    connection.commit()
+    # confirmation message
+    print("Successfully ended session")
+    u_options(uid)
+    return    
 
 ####################################################################
 ## END PROGRAM -----------------------------------------------------
 def logout():
+    ''' LOGOUT '''
     pass
 
 def exit_program():
+    ''' EXIT PROGRAM '''
+    print('bye bye :)')
     pass
 
 ####################################################################
