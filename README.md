@@ -55,6 +55,6 @@
      + ~~System creates unique id (if same title & duration doesn't already exist)~~
      - ~~Get additional artist ids from input~~
      - ~~update perform table~~
-+ Find top fans and playlists
-     + Lists top 3 users who listen to songs for the longest time
-     - Lists top 3 playlists with largest # of artist's songs
++ ~~Find top fans and playlists~~
+     + ~~Lists top 3 users who listen to songs for the longest time~~
+     - ~~Lists top 3 playlists with largest # of artist's songs~~
