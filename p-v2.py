@@ -45,9 +45,10 @@ def login():
     clean_up()  # clear the screen
     
     # welcome message
-    print(c.TITLE+"WELCOME"+c.W) 
+    print(c.TITLE+'------WELCOME------'+c.W) 
+    print(c.GREEN+"EXIT "+c.W+f"{'- Press E': >14}")
     print(c.GREEN+"NEW users "+c.W+"- Press R")
-    print(c.GREEN+"EXIT "+c.W+"- Press E")
+    
     # prompt user for uid/aid
     uid = input(c.GREEN+"RETURNING users "+
                 c.W+"Log in with user ID: \n")
@@ -162,8 +163,8 @@ def artist(aid):
     
     clean_up()  # clear the screen
     print(c.I_W+"Press (E) to "+c.GREEN+"EXIT"+c.W)
-    print(c.I_W+"Press (L) to "+c.GREEN+"LOGOUT"+c.W)
-    print(c.ARTIST+'---ARTIST MENU---'+c.W)
+    print(c.I_W+"Press (L) to "+c.GREEN+"LOGOUT\n"+c.W)
+    print(c.ARTIST+'____ARTIST MENU____'+c.W)
     print('[1]  Add a song\n[2]  Find top fans & playlists')
     get_input = input('> ')
     while get_input not in ['1', '2', "E", "e", "L", "l"]:
@@ -175,7 +176,7 @@ def artist(aid):
     elif get_input == '1':
         add_song(aid)
     else:
-        top_songs()
+        top_songs(aid)
     return
 
 def a_options(aid):
@@ -253,8 +254,86 @@ def add_song(aid):
     a_options(aid)
     return
 
-def top_songs():
-    pass
+def top_songs(aid):
+    ''' top 3 users
+        - listen to artist's songs the longest time
+        top 3 playlists 
+        - include largest # of artist's songs '''
+    
+    global connection, cursor
+    # display header
+    clean_up()
+    print(c.I_W+"Press (E) to  "+c.GREEN+"EXIT"+c.W)
+    print(c.I_W+"Press (L) to  "+c.GREEN+"LOGOUT"+c.W)  
+    print(c.I_W+"Press (M) for "+c.GREEN+"MENU\n"+c.W)
+    
+    # find songs that artist performs, top 3 listeners of those songs
+    print("TOP 3 "+c.GREEN+"FANS:"+c.W)
+    get_uid = '''SELECT uid, SUM(cnt) AS count 
+                 FROM listen WHERE sid IN
+                    (SELECT sid FROM perform 
+                     WHERE aid = ? COLLATE NOCASE) 
+                 GROUP BY uid
+                 ORDER BY count DESC;'''
+    cursor.execute(get_uid, (aid,))
+    uids = cursor.fetchall()
+    if uids == None:  # no users have listened or artist has no songs
+        print("Artist has 0 top listeners")
+    else:
+        for i in range(3):  # find top 3
+            print("[" + str(i+1) + "]  ", end='')
+            try:  # may be <3 top listeners
+                print(uids[i][0])  
+            except:
+                print("---")
+
+    # find top 3 playlists
+    print("\nTOP 3 "+c.GREEN+"PLAYLISTS:"+c.W)
+    get_plist = '''SELECT COUNT(DISTINCT sid) AS num, pid
+                   FROM plinclude
+                   WHERE sid IN
+                      (SELECT sid FROM perform
+                       WHERE aid = ? COLLATE NOCASE)
+                   GROUP BY pid
+                   ORDER BY num DESC;'''
+    plist = cursor.execute(get_plist, (aid,))
+    pids = cursor.fetchall()
+    if pids == None:  # no users have listened or artist has no songs
+        print("Artist has 0 top playlists")
+    else:
+        get_title = "SELECT title FROM playlists WHERE pid = ?;"
+        for i in range(3):  # find top 3
+            print("[" + str(i+1) + "]  ", end='')
+            try:  # may be <3 top listeners
+                cursor.execute(get_title, (pids[i][1],))  
+            except:
+                print("---")
+            else:
+                title = cursor.fetchone() 
+                print(title[0])  
+  
+    # actions (exit, logout, main menu, see playlist info)
+    action = "a"
+    while action not in ["L", "l", "E", "e", "M", "m", "1", "2", "3"]:
+        action = input("Use identifier "+c.GREEN+"[x]"+c.W+
+                       " to select a playlist")
+    if action in ["E", "e"]:  # exit
+        exit_program(aid, None)
+    elif action in ["L", "l"]:  # logout
+        logout(aid, None) 
+    elif action in ["1", "2", "3"]:  # see playlist info
+        try:
+            pid = pids[(int(action)-1)][1]
+        except:
+            print(c.ERROR+"Uh Oh!"+c.W+" playlist doesn't exist")
+            a_options(aid)
+        else:
+            plist_info(pid, aid, None)
+    else:
+        artist(aid)
+        
+    connection.commit()
+    return
 
 ####################################################################
 ## USER ------------------------------------------------------------  
@@ -264,8 +343,8 @@ def user(uid):
     global connection, cursor
     clean_up()  # clear the screen
     print(c.I_W+"Press (E) to "+c.GREEN+"EXIT"+c.W)
-    print(c.I_W+"Press (L) to "+c.GREEN+"LOGOUT"+c.W)    
-    print(c.USER+'---USER MENU---'+c.W)
+    print(c.I_W+"Press (L) to "+c.GREEN+"LOGOUT\n"+c.W)    
+    print(c.USER+'_____USER MENU_____'+c.W)
     print('[1]  Start a session\n[2]  Search for songs & playlists')
     print('[3]  Search for artists\n[4]  End current session')
     get_input = input('> ')
@@ -299,6 +378,11 @@ def u_options(uid):
         user(uid)
     else:
         logout(uid, "U")  
+        
+def search_songs():
+    pass
+def search_artists():
+    pass 
     
 def start_sess(uid):
     ''' START SESSION FOR A USER
@@ -315,7 +399,7 @@ def start_sess(uid):
         print(c.ERROR+"Uh Oh! "+c.W+
               "You already have a session in progress\n"+ 
               "Returning to "+c.USER+"USER MENU..."+c.W)
-        time.sleep(3)  # wait for 3 seconds
+        time.sleep(2.5)  # wait for 2.5 seconds
         user(uid)
     else:  # create session
         new_sno = create_sess(uid)
@@ -324,7 +408,78 @@ def start_sess(uid):
         u_options(uid)
     return
 
-def listen_song(sid, uid, id_type):
+####################################################################
+## SONGS -----------------------------------------------------------
+def s_options(sid, uid):
+    ''' MENU OF SONG OPTIONS
+        - allows user to listen to song
+        - allows user to add song to playlist
+        - allows users to see more info '''
+    clean_up()  # clear the screen
+    print(c.I_W+"Press (E) to "+c.GREEN+"EXIT"+c.W)
+    print(c.I_W+"Press (L) to "+c.GREEN+"LOGOUT\n"+c.W)   
+    print(c.GREEN+"[1]  "+c.W+"listen to song"+
+          c.GREEN+"[2]  "+c.W+"add song to playlist"+
+          c.GREEN+"[3]  "+c.W+"see song info")
+    action = "a"
+    while action not in ["1", "2", "3", "L", "l", "E", "e"]:
+        action = input("")
+    if action in ["E", "e"]:  # exit program
+        exit_program(uid, "U")
+    elif action in ["L", "l"]:  # logout
+        logout(uid, "U")  
+    elif action == "1":  # listen to song
+        listen_song(sid, uid)
+    elif action == "2":  # add song to playlist
+        add_to_plist(uid)
+    else:  # get more song info
+        song_info(sid, uid)
+    return
+    
+def plist_info(pid, uid, id_type):
+    ''' DISPLAYS INFO ABOUT PLAYLIST
+        - id, title, and duration of each song in playlist '''
+    global connection, cursor
+    # display header
+    print(c.I_W+"Press (E) to  "+c.GREEN+"EXIT"+c.W)
+    print(c.I_W+"Press (L) to  "+c.GREEN+"LOGOUT"+c.W)  
+    print(c.I_W+"Press (M) for "+c.GREEN+"MENU\n"+c.W)    
+
+    # get song info for this playlist
+    get_info = '''SELECT sid, title, duration FROM songs WHERE sid IN
+                  (SELECT sid FROM plinclude WHERE pid = ?); '''
+    cursor.execute(get_info, (pid,))
+    info = cursor.fetchall()
+    connection.commit()
+    print(f"{' SID' :<5}"+f"{'  SONG TITLE ' :<20}"+
+          f"{'  SONG DURATION' : <8}")
+    for i in info:
+        print(" ", end='')
+        print(f"{i[0] :<5}", end='')
+        print(f"{'| '+str(i[1]) :<20}", end='')
+        print(f"{'| '+str(i[2]) : <8}")
+    
+    # get user input
+    action = "a"
+    while action not in ["L", "l", "E", "e", "M", "m"]:
+        action = input("")
+    if action in ["L", "l"]:
+        logout(uid, id_type)
+    elif action in ["E", "e"]:
+        exit_program(uid, id_type)
+    else:
+        if id_type == "U":
+            user(uid)
+        else:
+            artist(uid)
+    return
+    
+def add_to_plist(uid):
+    ''' ADD SONG TO PLAYLIST
+        - '''
+    pass
+
+def listen_song(sid, uid):
     ''' ADD SONG TO CURRENT SESSION
         - checks for current session
         - if no session: creates a session
@@ -365,33 +520,7 @@ def listen_song(sid, uid, id_type):
     u_options(uid)
     return 
 
-def search_songs():
-    pass
-def search_artists():
-    pass
-
-def end_sess(uid):
-    ''' END CURRENT SESSION 
-        - checks that there is an active session
-        - sets end to current date/time '''
-  
-    # check that there is not a session in progress
-    exists = check_sess(uid)    
-    if exists==False:
-        print(c.ERROR+"Uh Oh! "+c.W+
-              "You have 0 sessions in progress\n"+ 
-              "Returning to "+c.USER+"USER MENU..."+c.W)
-        time.sleep(3)  # wait for 3 seconds
-        user(uid)
-        return
-    # set end to current date/time
-    update_sess(uid)
-    # confirmation message
-    print("Successfully ended session")
-    u_options(uid)
-    return   
-
-def song_info(sid, uid, id_type):
+def song_info(sid, uid):
     ''' DISPLAY INFO ABOUT SONG
         - name(s) of artist(s)
         - title
@@ -430,13 +559,34 @@ def song_info(sid, uid, id_type):
     # display playlists
     print(f"{c.I_GREEN+'PLAYLISTS: '+c.W: >24}", end='')
     for p in p_titles:
-        print(p+'  ', end='')
+        print(p+' - ', end='')
     
     connection.commit()
-    u_options(uid, id_type)
+    u_options(uid)
     return     
 
 ## SESSION FUNCTIONS ##
+def end_sess(uid):
+    ''' END CURRENT SESSION 
+        - checks that there is an active session
+        - sets end to current date/time '''
+  
+    # check that there is not a session in progress
+    exists = check_sess(uid)    
+    if exists==False:
+        print(c.ERROR+"Uh Oh! "+c.W+
+              "You have 0 sessions in progress\n"+ 
+              "Returning to "+c.USER+"USER MENU..."+c.W)
+        time.sleep(2.5)  # wait for 2.5 seconds
+        user(uid)
+        return
+    # set end to current date/time
+    update_sess(uid)
+    # confirmation message
+    print("Successfully ended session")
+    u_options(uid)
+    return  
+
 def create_sess(uid):
     ''' CREATE A SESSION '''
     global connection, cursor
@@ -507,9 +657,8 @@ def exit_program(uid, id_type):
         exists = check_sess(uid)    
         if exists==True:  
             update_sess(uid)     
-    print('bye bye :)')
+    print(c.I_W+'\ngoodbye\n'+c.W)
     quit()
-    pass
 
 ####################################################################
 ## MAIN ------------------------------------------------------------    
